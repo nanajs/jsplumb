@@ -439,8 +439,311 @@ Group -包含在某些其他元素中的一组元素，这些元素可以折叠�
 
 jsPlumb的公共API仅公开Connection和Endpoint，在内部处理其他所有内容的创建和配置。但是您仍然需要了解由Anchor，Connector和Overlay封装的概念。
 
+Connector, Endpoint, Anchor & Overlay Definitions
+每当需要定义连接器，端点，锚或覆盖时，都必须使用它的“定义”，而不是直接构造一个。此定义可以是指定您要创建的工件的字符串，请参见endpoint此处的参数：
+
+jsPlumb.connect({
+    source:"someDiv",
+    target:"someOtherDiv",
+    endpoint:"Rectangle"
+});
+...或包含工件名称和要传递给其构造函数的参数的数组：
+
+jsPlumb.connect({
+    source:"someDiv",
+    target:"someOtherDiv",
+    endpoint:[ "Rectangle", {
+      cssClass:"myEndpoint",
+      width:30,
+      height:10
+  }]
+});
+
+还有三个参数方法，可让您指定两组参数，jsPlumb将为您合并这些参数。其背后的想法是，您通常会希望在某处定义通用特征，并在许多不同的调用中重用它们：
+
+var common = {
+    cssClass    :   "myCssClass",
+    hoverClass  :   "myHoverClass"
+};
+jsPlumb.connect({
+    source:"someDiv",
+    target:"someOtherDiv",
+    endpoint:[ "Rectangle", { width:30, height:10 }, common ]
+});
+
+所有端点，连接器，锚和覆盖定义均支持此语法。这是使用所有四个定义的示例：
+
+var common = {
+    cssClass:"myCssClass"
+};
+jsPlumb.connect({
+  source:"someDiv",
+  target:"someOtherDiv",
+  anchor:[ "Continuous", { faces:["top","bottom"] }],
+  endpoint:[ "Dot", { radius:5, hoverClass:"myEndpointHover" }, common ],
+  connector:[ "Bezier", { curviness:100 }, common ],
+  overlays: [
+        [ "Arrow", { foldback:0.2 }, common ],
+        [ "Label", { cssClass:"labelClass" } ]
+    ]
+});
+对于您创建的每个工件，允许的构造函数参数都是不同的，但是每个工件都将单个JS对象作为参数，而该对象中的参数是（（键，值）对）。
+
+Anchors
+
+Introduction
+
+一个Anchor模型Connector定义了一个元素应该在哪里连接的概念-它定义了一个元素的位置Endpoint。锚有四种主要类型：
+
+Static - 固定在元素上的某个点并且不会移动。可以使用字符串来指定它们，以标识jsPlumb附带的默认值之一，或者使用描述位置的数组
+
+jsPlumb具有九个默认锚点位置，可用于指定连接器连接到元素的位置：这些是元素的四个角，元素的中心以及元素的每个边缘的中点：
+
+Top（也别名为TopCenter）
+TopRight
+Right（也别名为RightMiddle）
+BottomRight
+Bottom（也别名为BottomCenter）
+BottomLeft
+Left（也别名为LeftMiddle）
+TopLeft
+Center
+这些字符串表示中的每一个都只是围绕基于数组的基础语法的包装 [x, y, dx, dy]，其中x和y是间隔中的坐标，[0,1]用于指定锚点的位置，并且dx和和dy（用于指定入射到锚点的曲线的方向）可以具有一个值0、1或-1。例如，[0, 0.5, -1, 0]定义一个Left锚，该锚具有从锚向左发出的连接器曲线。类似地，[0.5, 0, 0, -1]定义一个Top锚，其连接器曲线向上散发。
+
+jsPlumb.connect({...., anchor:"Bottom", ... });
+等同于：
+
+jsPlumb.connect({...., anchor:[ 0.5, 1, 0, 1 ], ... });
+锚点偏移
+除了提供锚点的位置和方向之外，您还可以选择提供另外两个参数，这些参数定义距给定位置的像素偏移量。这是上面指定的锚点，但在y轴元素下方偏移了50个像素：
+
+jsPlumb.connect({...., anchor:[ 0.5, 1, 0, 1, 0, 50 ], ... });
+
+Dynamic - 这些是静态锚的列表，每次绘制Connection时，jsPlumb都会从中选择最合适的锚。用于确定最合适的锚点的算法会选择最接近Connection中另一个元素中心的锚点。将来的jsPlumb版本可能支持可插拔算法来做出此决定。.
+
+这些锚可以放置在多个位置之一中，每次在UI中移动或绘制物体时都选择最合适的一个。
+
+创建动态锚没有特殊的语法。您只提供了一系列单独的静态锚规范，例如：
+
+var dynamicAnchors = [ [ 0.2, 0, 0, -1 ],  [ 1, 0.2, 1, 0 ],
+               [ 0.8, 1, 0, 1 ], [ 0, 0.8, -1, 0 ] ];
+
+jsPlumb.connect({...., anchor:dynamicAnchors, ... });
+请注意，您可以混合使用以下各个静态锚规范的类型：
+
+var dynamicAnchors = [ [ 0.2, 0, 0, -1 ],  [ 1, 0.2, 1, 0 ],
+               "Top", "Bottom" ];
+
+jsPlumb.connect({...., anchor:dynamicAnchors, ... });
+
+默认动态锚
+jsPlumb提供了一种称为动态锚AutoDefault从选Top，Right，Bottom和Left：
+
+jsPlumb.connect({...., anchor:"AutoDefault", ... });
+
+位置选择
+决定选择哪个位置的算法只是计算哪个位置最接近Connection中另一个元素的中心。如果需要，将来的jsPlumb版本可能会支持更复杂的选择算法。
+
+可拖动的连接
+动态锚和可拖动连接可以互操作：当您开始从动态锚中拖动连接时，jsPlumb会锁定动态锚的位置，并在建立或放弃连接后将其解锁。到那时，您可能会看到动态锚点更改的位置，因为jsPlumb优化了连接。
+
+您可以在可拖动的连接演示中看到此行为，当您将连接从窗口1的蓝色端点拖到窗口3的蓝色端点时-建立连接，然后窗口1的蓝色端点向下跳到一个更接近的位置视窗3。
+
+Perimeter anchors - 这些锚点遵循某些给定形状的周边。本质上讲，它们是动态锚，其位置是从基础形状的周长中选择的。
+这些是动态锚的一种形式，其中锚的位置是从某些给定形状的周边中选择的。jsPlumb支持六种形状：
+
+Circle
+Ellipse
+Triangle
+Diamond
+Rectangle
+Square
+Rectangle从Square严格意义上讲，和并不是必须的，因为矩形是Web页面中的标准格式。但是为了完整起见，将它们包括在内。
+
+jsPlumb.addEndpoint("someElement", {
+  endpoint:"Dot",
+  anchor:[ "Perimeter", { shape:"Circle" } ]
+});
+在此示例中，我们的锚点将绕着圆所刻画的路径行进，圆的直径是基础元素的宽度和高度。
+
+请注意，Circle形状因此与相同Ellipse，因为假定基础元素的宽度和高度相等，如果不相同，则将得到一个椭圆形。Rectangle并Square有相同的关系。
+
+默认情况下，jsPlumb使用60个锚点位置估算周长。不过，您可以更改此设置：
+
+jsPlumb.addEndpoint("someDiv", {
+    endpoint:"Dot",
+    anchor:[ "Perimeter", { shape:"Square", anchorCount:150 }]
+});
+显然，点数越多，操作越流畅。而且浏览器还需要做更多的工作。
+
+这是一个三角形和菱形示例，仅出于完整性考虑：
+
+jsPlumb.connect({
+    source:"someDiv",
+    target:"someOtherDiv",
+    endpoint:"Dot",
+    anchors:[
+        [ "Perimeter", { shape:"Triangle" } ],
+        [ "Perimeter", { shape:"Diamond" } ]
+    ]
+});
+您可以rotation为Perimeter锚提供一个值-在本演示中可以看到一个示例。使用方法如下：
+
+jsPlumb.connect({
+    source:"someDiv",
+    target:"someOtherDiv",
+    endpoint:"Dot",
+    anchors:[
+        [ "Perimeter", { shape:"Triangle", rotation:25 } ],
+        [ "Perimeter", { shape:"Triangle", rotation:-335 } ]
+    ]
+});
+请注意，该值必须以度为单位，而不是以弧度为单位，并且该值可以是正数或负数。在上面的示例中，两个三角形当然旋转了相同的量。
+
+Continuous anchors - 这些锚不固定在任何特定位置；根据元素相对于关联Connection中另一个元素的方向，将它们分配给元素的四个面之一。与静态或动态锚相比，连续锚的计算强度稍高，因为需要jsPlumb来计算绘制周期内每个Connection的位置，而不是仅属于运动元素的Connection。如上所述，这些是锚，其位置由jsPlumb根据Connection中元素之间的方向以及还有多少其他的Continuous锚碰巧共享该元素来计算。您可以使用要用来指定默认静态锚点之一的字符串语法来指定要使用连续锚点，例如：
+
+jsPlumb.connect({
+    source:someDiv,
+    target:someOtherDiv,
+    anchor:"Continuous"
+});
+请注意，在此示例中，我仅指定了“ anchor”，而不是“ anchors”-jsPlumb将对两个锚使用相同的规范。但是我可以这样说：
+
+jsPlumb.connect({
+  source:someDiv,
+  target:someOtherDiv,
+  anchors:["Bottom", "Continuous"]
+});
+...这会导致源元素在处具有静态锚点BottomCenter。但实际上，如果Connection中的两个元素都使用连续锚，则似乎连续锚最有效。
+
+另请注意，可以在addEndpoint呼叫中指定连续锚：
+
+jsPlumb.addEndpoint(someDiv, {
+  anchor:"Continuous",
+  paintStyle:{ fill:"red" }
+});
+...在makeSource/ makeTarget：
+
+jsPlumb.makeSource(someDiv, {
+  anchor:"Continuous",
+  paintStyle:{ fill:"red" }
+});
+
+jsPlumb.makeTarget(someDiv, {
+  anchor:"Continuous",
+  paintStyle:{ fill:"red" }
+});
+...，并且在jsPlumb默认值中：
+
+jsPlumb.Defaults.Anchor = "Continuous";
+
+连续锚面
+默认情况下，连续锚将从其所在元素的所有四个面上选择点。不过，您可以使用faces锚点规范中的参数来控制此行为：
+
+jsPlumb.makeSource(someDiv, {
+    anchor:["Continuous", { faces:[ "top", "left" ] } ]
+});
+允许的值是：top - left - right - -bottom
+
+如果为faces参数提供一个空数组，则jsPlumb将默认使用所有四个面。
 
 
+将CSS类与锚关联
+上面讨论的数组语法支持可选的第7个值，该值是代表CSS类的字符串。然后，将此CSS类与锚点关联，并在选定锚点时将其应用于锚点的端点和元素。
+
+当然，始终会“选择”静态锚，但动态锚会在许多不同的位置循环，并且每个锚都可能具有与之关联的不同CSS类。
+
+写入Endpoint和Element的CSS类以相关的jsPlumb实例的endpointAnchorClass前缀为前缀，默认为：
+
+jtk-endpoint-anchor-
+因此，例如，如果您具有以下条件：
+
+var ep = jsPlumb.addEndpoint("someDiv", {
+  anchor:[0.5, 0, 0, -1, 0, 0, "top" ]
+};
+然后，由jsPlumb创建的Endpoint以及元素someDiv将为其分配了此类：
+
+jtk-endpoint-anchor-top
+使用动态锚点的示例：
+
+var ep = jsPlumb.addEndpoint("someDiv", {
+  anchor:[
+    [ 0.5, 0, 0, -1, 0, 0, "top" ],
+    [ 1, 0.5, 1, 0, 0, 0, "right" ]
+    [ 0.5, 1, 0, 1, 0, 0, "bottom" ]
+    [ 0, 0.5, -1, 0, 0, 0, "left" ]
+  ]
+});
+在这里，当锚点位置更改时，分配给Endpoint和Element的类将在这些值之间循环：
+
+jtk-endpoint-anchor-top
+jtk-endpoint-anchor-right
+jtk-endpoint-anchor-left
+jtk-endpoint-anchor-bottom
+请注意，如果您提供的类名称包含多个术语，则jsPlumb不会在该类中的每个术语之前添加前缀：
+
+var ep = jsPlumb.addEndpoint("someDiv", {
+  anchor:[ 0.5, 0, 0, -1, 0, 0, "foo bar" ]
+});
+将导致将2个类添加到Endpoint和Element：
+
+jtk-endpoint-anchor-foo
+和
+
+bar
+
+Changing the anchor class prefix
+更改锚类前缀
+与锚点类一起使用的前缀存储为jsPlumb成员endpointAnchorClass。您可以在jsPlumb的某些实例上将其更改为任意值：
+
+jsPlumb.endpointAnchorClass = "anchor_";
+或许
+
+var jp = jsPlumb.getInstance();
+jp.endpointAnchorClass = "anchor_";
+
+
+Static Anchors
+Dynamic Anchors
+Default Dynamic Anchor
+Location Selection
+Perimeter Anchors
+Perimeter Anchor Rotation
+Continuous Anchors
+Continuous Anchor Faces
+Associating CSS classes with Anchors
+
+Connectors
+
+连接器是实际上连接UI元素的线。jsPlumb具有四个连接器实现-直线，贝塞尔曲线，“流程图”和“状态机”。默认连接器是贝塞尔曲线。
+
+您可选择通过设置指定接口connector上的呼叫属性jsPlumb.connect， jsPlumb.addEndpoint(s)，jsPlumb.makeSource或jsPlumb.makeTarget。如果您未提供的值connector，则将使用默认值。
+您可以使用连接器，端点，锚点和覆盖定义中描述的语法指定连接器 。每种连接器类型允许的构造函数值如下所述。
+Bezier 曲线在两个端点之间提供三次贝塞尔曲线路径。它支持一个构造函数参数：
+
+curviness -可选的; 默认值为150。这定义了Bezier控制点到锚点的距离（以像素为单位）。这并不意味着您的连接器将通过与曲线相距此距离的点。这暗示了您希望曲线如何移动。与其在这里没有详细讨论贝塞尔曲线，我们不如将您引至Wikipedia。
+
+Straight 在两个端点之间绘制一条直线。支持两个构造函数参数：
+
+stub -可选，默认为0。此参数的任何正值将导致该长度的存根从直线段连接到连接的另一端之前的端点发出。
+gap -可选，默认为0。端点与存根的起点或连接到另一个端点的段之间的间隔。
+
+Flowchart 绘制由一系列垂直或水平段组成的连接-经典流程图外观。支持四个构造函数参数：
+
+stub - 这是从端点发出的初始存根的最小长度（以像素为单位）。这是一个可选参数，可以是一个整数，该整数指定连接器两端的存根，也可以是两个整数的数组，指定连接中[源，目标]端点的存根。默认值为30像素的整数。
+alwaysRespectStubs - 可选，默认为false。此参数指示jsPlumb始终在每个端点之外绘制指定桩号长度的线，而不是在两个元素比两个桩号之和更近的情况下自动减少桩号。
+
+gap -可选，默认为0像素。使您可以指定连接器的末端与其连接的元素之间的间隙。
+midpoint - 可选，默认为0.5。这是将绘制流程图连接器最长部分的两个元素之间的距离。此参数在您具有以图形方式控制图形并且可能希望避免页面上其他元素的情况下很有用。
+cornerRadius  默认值为0。此参数为正值将导致弯曲的角段。
+
+此连接器支持在同一元素上开始和结束的连接（“环回”连接）。
+
+State Machine 绘制略微弯曲的线（它们实际上是二次贝塞尔曲线），类似于您在GraphViz等软件中可能看到的状态机连接器。这些连接器支持某些元素既是源又是目标（“环回”）的连接（与流程图连接器一样）；在这种情况下，您会得到一个圆圈。支持的构造函数参数为：
+
+margin- 可选的; 默认值为5。定义到连接器开始/结束的元素的距离。
+curviness -可选，默认为10。这与贝塞尔曲线上的曲线参数具有相似的效果。
+proximityLimit -可选，默认为80。在将连接器自身绘制为直线而不是二次贝塞尔曲线之前，连接器两端之间的最小距离。
 
 
 
