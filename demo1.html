@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    .contanier {
+      width: 500px;
+      height: 500px;
+      border: 1px solid #ccc;
+      position: relative;
+    }
+
+    .item {
+      position: absolute;
+      display: inline-block;
+      width: 100px;
+      height: 100px;
+      border: 1px solid #ccc;
+    }
+  </style>
+  <script src="./lib/jsplumb.min.js"></script>
+</head>
+
+<body>
+  <div class="contanier">
+    <span id='item_left' class="item"></span>
+    <span id='item_right' class="item" style="left: 150px;"></span>
+    <span id='item_right1' class="item" style="left: 350px;"></span>
+  </div>
+
+
+  <script>
+    jsPlumb.ready(function () {
+      jsPlumb.setContainer('contanier'); //
+      // 公共部分的抽取
+      var common = {
+        endpoint: "Blank",
+        connector: ['Flowchart'],
+        anchor: ['Bottom', 'Bottom'],
+        // 给连接线加样式
+        paintStyle: { // 连线样式
+          stroke: 'red',
+          strokeWidth: 3
+        },
+        endpointStyle: { // 节点样式
+          fill: 'lightgray',
+          outlineStroke: 'darkgray',
+          outlineWidth: 2
+        },
+        // 给连接加上箭头
+        overlays: [ //Label  Arrow  PlainArrow Diamond Custom
+          ['Arrow', {
+            width: 12,
+            length: 12,
+            location: 1 //箭头位置0-1
+          }]
+        ],
+        // 用户拖动，自动创建连接
+        isSource: true,
+        isTarget: true,
+      };
+      // 默认用户拖动不自动创建连接
+      /* jsPlumb.importDefaults({
+        ConnectionsDetachable: true
+      }); */
+      jsPlumb.connect({
+        source: 'item_left',
+        target: 'item_right'
+      }, common);
+      // 增加端点
+      jsPlumb.addEndpoint('item_left', {
+        anchors: ['Right']
+      }, common);
+      jsPlumb.addEndpoint('item_right', {
+        anchors: ['Left']
+      }, common)
+      jsPlumb.connect({
+        source: 'item_left',
+        target: 'item_right1'
+      }, common);
+      /* jsPlumb.connect({
+          source: 'item_left',
+          target: 'item_right',
+          endpoint: "Rectangle",
+          // endpoint: ["Image", { src: './apidocs/assets/favicon.png' }]端点类型，形状Dot原点 Rectangle方块 Blank无形状 Image
+
+          connector: ['Flowchart'], // 设置连接线形状Bezier Flowchart StateMachine Straight
+          anchor: ['Left', 'Bottom'] //设置锚点的位置
+          //jsPlumb.connect, jsPlumb.addEndpoint, jsPlumb.makeSource or jsPlumb.makeTarget.
+        }
+        , {
+                source: 'item_left',
+                target: 'item_right1',
+                endpoint: "Rectangle",
+                // endpoint: ["Image", { src: './apidocs/assets/favicon.png' }]端点类型，形状Dot原点 Rectangle方块 Blank无形状 Image
+
+                connector: ['Flowchart'], // 设置连接线形状Bezier Flowchart StateMachine Straight
+                //jsPlumb.connect, jsPlumb.addEndpoint, jsPlumb.makeSource or jsPlumb.makeTarget.
+              }
+      )*/
+
+      jsPlumb.draggable("item_left"); //拖动的前提是元素定位为absolute
+      // jsPlumb.draggable('item_right')
+    });
+    // 实例化
+    // var firstInstance = jsPlumb.getInstance();
+  </script>
+
+</body>
+
+</html>
