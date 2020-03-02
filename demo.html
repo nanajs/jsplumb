@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <script src="http://code.angularjs.org/1.2.25/angular.min.js"></script>
+  <script src="./lib/jsplumb.min.js"></script>
+  <style>
+    .appData {
+      position: relative;
+    }
+
+    .parentType {
+      border: 1px solid royalblue;
+      clear: both;
+      position: absolute;
+      width: 222px;
+      height: 182px;
+    }
+
+    .childrenItem {
+      width: 80px;
+      height: 30px;
+      border: 1px solid rebeccapurple;
+      position: absolute;
+      min-width: 80px;
+      min-height: 30px;
+    }
+
+    .childrenItem span {
+      display: inline-block;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="appData" ng-app="appData" ng-controller="GreetingCtrl">
+    <!-- <div ng-repeat="parentItem in topoList" class="parentType">
+      <div ng-repeat="children in parentItem.children" class="chindrenType">
+        <div ng-repeat="(typ,val) in children" class="childrenItem" id="{{parentItem.id}}">
+          <span ng-if="typ === 'target'" id="{{val}}" ng-bind="val"></span>
+          <span ng-if="typ === 'source'" id="{{val}}" ng-bind="val"></span>
+        </div>
+      </div>
+    </div> -->
+    <div ng-repeat="parentItem in nodeList.groups" id="{{parentItem.id}}" class="parentType">
+      {{parentItem.id}}
+      <div ng-repeat="childrenItem in nodeList.nodes" ng-if="childrenItem.group === parentItem.id"
+        id="{{childrenItem.id}}" class="childrenItem" ng-bind="childrenItem.name"></div>
+    </div>
+    <script>
+      var myApp = angular.module('appData', []);
+
+      myApp.controller('GreetingCtrl', ['$scope', function ($scope) {
+        $scope.topoList = [{
+          id: "parent1",
+          children: [{
+            target: "parent1_children1",
+            source: "parent1_children1.1"
+          }, {
+            target: "parent1_children2",
+            source: "parent1_children2.1"
+          }]
+        }, {
+          id: "parent2",
+          children: [{
+            target: "parent2_children1",
+            source: "parent2_children1.1"
+          }, {
+            target: "parent2_children2",
+            source: "parent2_children2.1"
+          }]
+        }];
+        $scope.nodeList = {
+          "nodes": [{
+              "id": "window1",
+              "name": "1",
+              "left": 10,
+              "top": 20,
+              "group": "one"
+            },
+            {
+              "id": "window2",
+              "name": "2",
+              "left": 140,
+              "top": 50,
+              "group": "one"
+            },
+            {
+              "id": "window3",
+              "name": "3",
+              "left": 450,
+              "top": 50
+            },
+            {
+              "id": "window4",
+              "name": "4",
+              "left": 110,
+              "top": 370
+            },
+            {
+              "id": "window5",
+              "name": "5",
+              "left": 140,
+              "top": 150,
+              "group": "one"
+            },
+            {
+              "id": "window6",
+              "name": "6",
+              "left": 50,
+              "top": 50,
+              "group": "two"
+            },
+            {
+              "id": "window7",
+              "name": "7",
+              "left": 50,
+              "top": 450
+            },
+            {
+              "id": "window8",
+              "name": "8",
+              "left": 50,
+              "top": 150,
+              "group": "three"
+            }
+          ],
+          "edges": [{
+              "source": "window1",
+              "target": "window3",
+              "data": {}
+            },
+            {
+              "source": "window1",
+              "target": "window4",
+              "data": {}
+            },
+            {
+              "source": "window3",
+              "target": "window5",
+              "data": {}
+            },
+            {
+              "source": "window4",
+              "target": "window6",
+              "data": {}
+            },
+            {
+              "source": "window5",
+              "target": "window2",
+              "data": {}
+            },
+            {
+              "source": "window6",
+              "target": "window2",
+              "data": {}
+            },
+            {
+              "source": "three",
+              "target": "one",
+              "data": {}
+            }
+          ],
+          "ports": [],
+          "groups": [{
+              "id": "one",
+              "title": "Group 1",
+              "left": 100,
+              "top": 50
+            },
+            {
+              "id": "two",
+              "title": "Group 2",
+              "left": 450,
+              "top": 250,
+              "type": "constrained"
+            },
+            {
+              "id": "three",
+              "title": "Group 3",
+              "left": 350,
+              "top": 300
+            }
+          ]
+        }
+
+        jsPlumb.ready(function () {
+          jsPlumb.setContainer('appData');
+          var firstInstance = jsPlumb.getInstance();
+          $scope.nodeList.groups.forEach(function (parentItem) {
+            var eleObj = document.getElementById(parentItem.id);
+            eleObj.style.top = parentItem.top + 'px';
+            eleObj.style.left = parentItem.left + 'px';
+            firstInstance.addGroup({
+              el: eleObj,
+              id: parentItem.id,
+              droppable: true, // 是否拖放子元素
+              anchor: ['Top', 'Bottom'],
+              constrain: true, // 防止组接受已删除的元素
+              dropOverride: true, // 防止将元素拖到组外
+              endpoint: ["Rectangle", {
+                width: 10,
+                height: 10
+              }]
+            });
+          });
+          $scope.nodeList.nodes.forEach(function (childrenItem) {
+            var eleObj = document.getElementById(childrenItem.id);
+            if (eleObj) {
+              eleObj.style.top = childrenItem.top + 'px';
+              eleObj.style.left = childrenItem.left + 'px';
+              firstInstance.addToGroup(childrenItem.group, eleObj);
+            }
+          });
+          $scope.nodeList.edges.forEach(function (childrenItem) {
+            jsPlumb.connect({
+              source: childrenItem.target,
+              target: childrenItem.source,
+              endpoint: 'Dot'
+            });
+            jsPlumb.draggable(childrenItem.target);
+            jsPlumb.draggable(childrenItem.source);
+          });
+
+
+        });
+
+
+        // parentList
+
+        var commonStyle = {
+          endpoint: "Blank",
+          connector: ['Flowchart'],
+          anchor: ['Bottom', 'Bottom'],
+          // 给连接线加样式
+          paintStyle: { // 连线样式
+            stroke: 'red',
+            strokeWidth: 3
+          },
+          endpointStyle: { // 节点样式
+            fill: 'lightgray',
+            outlineStroke: 'darkgray',
+            outlineWidth: 2
+          },
+          // 给连接加上箭头
+          overlays: [ //Label  Arrow  PlainArrow Diamond Custom
+            ['Arrow', {
+              width: 12,
+              length: 12,
+              location: 1 //箭头位置0-1
+            }]
+          ],
+          // 用户拖动，自动创建连接
+          isSource: true,
+          isTarget: true,
+        };
+
+
+        /* jsPlumb.ready(function () {
+          jsPlumb.setContainer('appData');
+          $scope.topoList.forEach(function (parentItem) {
+            var firstInstance = jsPlumb.getInstance();
+            firstInstance.addGroup({
+              el: document.getElementById(parentItem.id),
+              id: parentItem.id,
+              droppable: true, // 是否拖放子元素
+              anchor: ['Top', 'Bottom'],
+              constrain: true, // 防止组接受已删除的元素
+              dropOverride: true, // 防止将元素拖到组外
+              endpoint: ["Rectangle", {
+                width: 10,
+                height: 10
+              }]
+            });
+            parentItem.children.forEach(function (childrenItem) {
+              firstInstance.addToGroup(parentItem.id, document.getElementById(childrenItem.target));
+              firstInstance.addToGroup(parentItem.id, document.getElementById(childrenItem.source));
+              firstInstance.connect({
+                source: childrenItem.target,
+                target: childrenItem.source,
+                endpoint: 'Dot'
+              });
+              firstInstance.draggable(childrenItem.target);
+              firstInstance.draggable(childrenItem.source);
+            });
+          });
+
+        });
+
+ */
+      }]);
+    </script>
+
+</body>
+
+</html>
