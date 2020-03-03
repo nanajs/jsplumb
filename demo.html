@@ -7,7 +7,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
   <script src="http://code.angularjs.org/1.2.25/angular.min.js"></script>
-  <script src="./lib/jsplumb.min.js"></script>
+  <script src="./lib/jsplumb.js"></script>
   <style>
     .appData {
       position: relative;
@@ -51,7 +51,7 @@
     <div ng-repeat="parentItem in nodeList.groups" id="{{parentItem.id}}" class="parentType">
       {{parentItem.id}}
       <div ng-repeat="childrenItem in nodeList.nodes" ng-if="childrenItem.group === parentItem.id"
-        id="{{childrenItem.id}}" class="childrenItem" ng-bind="childrenItem.name"></div>
+        id="{{childrenItem.id}}" class="childrenItem" ng-bind="childrenItem.id"></div>
     </div>
     <script>
       var myApp = angular.module('appData', []);
@@ -191,8 +191,35 @@
         }
 
         jsPlumb.ready(function () {
-          jsPlumb.setContainer('appData');
+
           var firstInstance = jsPlumb.getInstance();
+          // 执行操作之前先暂停绘图
+          firstInstance.setSuspendDrawing(true);
+          // 全局样式定义，默认样式 //单个定义使用getInstance
+          firstInstance.importDefaults({
+            PaintStyle: { //连接器为13像素宽，并涂有半透明的红线
+              strokeWidth: 13,
+              stroke: 'rgba(200,0,0,0.5)'
+            },
+            ReattachConnections : false,//是否重新连接使用鼠标分离的线
+            DragOptions: {
+              cursor: "crosshair"
+            }, //拖动元素时，使用十字光标
+            Endpoints: [
+              ["Dot", {
+                radius: 7
+              }],
+              ["Dot", {
+                radius: 11
+              }]
+            ], //源端点是半径为7的点；目标端点是半径11的点
+            ConnectionsDetachable: false, // 全局不能移动连接线
+            EndpointStyles: [{
+              fill: "#225588"
+            }, {
+              fill: "#558822"
+            }] //源端点为蓝色；目标端点为绿色
+          });
           $scope.nodeList.groups.forEach(function (parentItem) {
             var eleObj = document.getElementById(parentItem.id);
             eleObj.style.top = parentItem.top + 'px';
@@ -200,16 +227,20 @@
             firstInstance.addGroup({
               el: eleObj,
               id: parentItem.id,
-              droppable: true, // 是否拖放子元素
+              droppable: false, // 是否拖放子元素，子元素是否可以放置其他元素
               anchor: ['Top', 'Bottom'],
-              constrain: true, // 防止组接受已删除的元素
+              constrain: false, // 防止组接受已删除的元素，子元素仅限在元素内拖动
               dropOverride: true, // 防止将元素拖到组外
+              draggable: true, // 默认为true,组是否可以拖动
+              revert: true, // 元素是否可以拖到只有边框可以重合
               endpoint: ["Rectangle", {
                 width: 10,
                 height: 10
               }]
             });
           });
+          // 节点移动时，动态刷新连接线
+          firstInstance.repaintEverything();
           $scope.nodeList.nodes.forEach(function (childrenItem) {
             var eleObj = document.getElementById(childrenItem.id);
             if (eleObj) {
@@ -219,14 +250,48 @@
             }
           });
           $scope.nodeList.edges.forEach(function (childrenItem) {
-            jsPlumb.connect({
+            firstInstance.connect({
               source: childrenItem.target,
               target: childrenItem.source,
               endpoint: 'Dot'
+              // detachable: false // 不能移动该线
             });
-            jsPlumb.draggable(childrenItem.target);
-            jsPlumb.draggable(childrenItem.source);
+            firstInstance.draggable(childrenItem.target);
+            firstInstance.draggable(childrenItem.source);
           });
+          firstInstance.setContainer("appData");
+          // 获取所有连线数据
+          for (var i in firstInstance.getAllConnections()) {
+            // connections 是线数据数组
+            // 前提，给定一个实例，实例上会绑定所需的所有数据
+            console.log(firstInstance.getAllConnections()[i])
+            firstInstance.getAllConnections()[i].sourceId; // 起始html元素的ID
+            firstInstance.getAllConnections()[i].targetId; // 目标html元素的ID
+            firstInstance.getAllConnections()[i].endpoints; // 端点 有起始端点和目标端点 endpoints是一个数组
+            firstInstance.getAllConnections()[i].endpoints[0].anchor; // endpoints[0]是起始端点 anchor是锚点
+            firstInstance.getAllConnections()[i].endpoints[0].anchor.type; // 锚点的type（类型），位置
+            firstInstance.getAllConnections()[i].endpoints[1].anchor; // endpoints[1]是目标端点 anchor是锚点
+            firstInstance.getAllConnections()[i].endpoints[1].anchor.type; // 锚点的type（类型），位置
+          }
+          let jsplumbGetGroup = firstInstance.getGroup('one');
+          // 获取子元素的父元素
+          console.log(firstInstance.getGroupFor('window1'));
+
+          // 获取子元素的父元素
+          console.log(jsplumbGetGroup);
+          // 获取父元素下面所有子元素
+          jsplumbGetGroup.getMembers().forEach(function (memberItem) {
+            // 下面两个返回结果相同
+            // console.log(memberItem);
+            console.log(firstInstance.getGroup(memberItem))
+          });
+          // console.log(jsplumbGetGroup.getMembers());
+          let jsplumbGetGroups = firstInstance.getGroups('two');
+          console.log(jsplumbGetGroups);
+
+          // 处理完数据之后，整体绘制
+          firstInstance.setSuspendDrawing(false, true);
+
 
 
         });
