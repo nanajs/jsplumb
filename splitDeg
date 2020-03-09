@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+
+    .title {
+      width: 100%;
+      line-height: 28px;
+      background-color: aqua;
+    }
+
+    .topo_group {
+      height: 50px;
+      position: absolute;
+      /* border: 1px solid red; */
+      background-color: aqua;
+    }
+
+    .childItem {
+      width: 30px;
+      height: 30px;
+      position: absolute;
+      border: 1px solid red;
+      margin-left: 10px;
+    }
+  </style>
+  <script src="./lib/jquery.js"></script>
+</head>
+
+<body>
+  <!--  <div id="copy">dcopy </div>
+  <script>
+    var copyDom = document.getElementById('copy');
+    var range = document.createRange();
+    range.selectNode(copyDom);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    var a = document.execCommand('copy');
+  </script> -->
+  <div style="width: 1000px;height: 800px;border: 1px solid #ccc;position: relative;overflow: scroll;" id="container">
+    <div id="circle" style="width: 1px;height:1px;background-color: red;position:absolute;">aa</div>
+    <div class="topo_group">scopedSlots0</div>
+    <div class="topo_group">scopedSlots1</div>
+    <div class="topo_group">scopedSlots2</div>
+    <div class="topo_group">scopedSlots3</div>
+    <div class="topo_group">scopedSlots4</div>
+    <div class="topo_group">scopedSlots5</div>
+    <div class="topo_group">scopedSlots6</div>
+    <div class="topo_group">scopedSlots7</div>
+    <div class="topo_group">scopedSlots8</div>
+    <div class="topo_group">scopedSlots9</div>
+  </div>
+  <script>
+    /*
+     topo_group的高度定为300px,宽度不定
+     childItem的宽度高度固定
+    */
+    let containerEle = $('#container');
+    let parentEle = $('#container .topo_group');
+
+    setParentWidth();
+
+    // 设置父元素的宽度
+    function setParentWidth() {
+      for (var parentIndex = 0, parentLen = parentEle.length; parentIndex < parentLen; parentIndex++) {
+        let parentChildEle = $(parentEle[parentIndex]).find('.childItem');
+        if (parentChildEle.length > 0) {
+          let childWidth = parentChildEle[0].offsetWidth;
+          $(parentEle[parentIndex]).css('width', function () {
+            return (parseInt(parentChildEle.css('marginLeft')) + childWidth) *
+              parentChildEle
+              .length +
+              parseInt(parentChildEle.css('marginLeft')) + 'px';
+          });
+        }
+      }
+    }
+
+    function setChildPosition() {
+
+    }
+
+    setParentPosition();
+
+    // let containerEle = $('#container');
+    // let parentEle = $('#container .topo_group');
+    // 根据连线关系固定父组件的位置
+    function setParentPosition() {
+      var containerEleWidth = parseInt(containerEle.css("width")) / 2;
+      var containerEleHeight = parseInt(containerEle.css("height")) / 2;
+      var parentLength = parentEle.length;
+      // 定义第一个默认位置为
+      //角度
+      var vAngle = 90;
+      //正弦值
+      var vSin = Math.round(Math.sin((vAngle * Math.PI / 180)) * 1000000) / 1000000;
+      //余弦值
+      var vCos = Math.round(Math.cos((vAngle * Math.PI / 180)) * 1000000) / 1000000;
+      $("#circle").css({
+        'top': function () {
+          return containerEleHeight + 'px';
+        },
+        'left': function () {
+          return containerEleWidth + 'px';
+        }
+      });
+      for (var i = 0; i < parentLength; i++) {
+        // 每个元素的角度
+        var vAngle = 360 / parentLength * i;
+        var parentObj = $(parentEle[i]);
+        var positionTop = 0;
+        var positionLeft = 0;
+        var accoNum = 0; // 每次的偏移
+        if (vAngle === 0) {
+          positionTop = containerEleHeight - accoNum - parseInt(parentObj.css('height')) / 2;
+          positionLeft = containerEleWidth - parseInt(parentObj.css('width')) / 2;
+         /*  positionTop < containerEleHeight;
+          positionLeft < containerEleWidth; */
+        } else if (0 < vAngle && vAngle <= 90) {
+          positionTop = parseInt(parentObj.prev(".topo_group").css('top')) + accoNum + parseInt(parentObj.prev(
+            ".topo_group").css('height'));
+          positionLeft = parseInt(parentObj.prev(".topo_group").css('left')) - accoNum + parseInt(parentObj.prev(
+            ".topo_group").css('width'));
+         /*  positionTop < containerEleHeight;
+          positionLeft > containerEleWidth; */
+        } else if (90 < vAngle && vAngle <= 180) {
+          positionTop = parseInt(parentObj.prev(".topo_group").css('top')) + accoNum + parseInt(parentObj.prev(
+            ".topo_group").css('height'));
+          positionLeft = parseInt(parentObj.prev(".topo_group").css('left')) + accoNum - parseInt(parentObj.css(
+            'width'));
+         /*  positionTop > containerEleHeight;
+          positionLeft > containerEleWidth; */
+        } else if (180 < vAngle && vAngle <= 270) {
+          positionTop = parseInt(parentObj.prev(".topo_group").css('top')) - accoNum - parseInt(parentObj.css(
+            'height'));
+          positionLeft = parseInt(parentObj.prev(".topo_group").css('left')) - accoNum - parseInt(parentObj.css(
+            'width'));
+         /*  positionTop > containerEleHeight;
+          positionLeft < containerEleWidth; */
+        } else if (270 < vAngle && vAngle < 360) {
+          positionTop = parseInt(parentObj.prev(".topo_group").css('top')) - accoNum - parseInt(parentObj.css(
+            'height'));
+          positionLeft = parseInt(parentObj.prev(".topo_group").css('left')) - accoNum + parseInt(parentObj.prev(
+            ".topo_group").css('width'));
+          /*
+          positionTop < containerEleHeight;
+          positionLeft < containerEleWidth; */
+        }
+        console.log(i);
+        parentObj.css({
+          'top': function () {
+            return Math.abs(positionTop) + 'px';
+          },
+          'left': function () {
+            return Math.abs(positionLeft) + 'px';
+          }
+        });
+      }
+
+    }
+  </script>
+
+</body>
+
+</html>
